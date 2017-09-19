@@ -1,5 +1,4 @@
 from discord.ext import commands
-import asyncpg
 import discord
 
 from utils import checks
@@ -20,40 +19,6 @@ class Owner:
     async def playing(self, ctx, *, status: str):
         """Sets the 'Playing' message for the bot."""
         await self.bot.change_presence(game=discord.Game(name=status))
-
-###################
-#                 #
-# PLONKING        #
-#                 #
-###################
-
-    @checks.db
-    @commands.command()
-    async def plonk(self, ctx, user: discord.Member):
-        """Adds a user to the bot's blacklist"""
-        try:
-            async with ctx.con.transaction():
-                await ctx.con.execute('''
-                    INSERT INTO plonks (guild_id, user_id) VALUES ($1, $2)
-                    ''', ctx.guild.id, user.id)
-        except asyncpg.UniqueViolationError:
-            await ctx.send('User is already plonked.')
-        else:
-            await ctx.send('User has been plonked.')
-
-    @checks.db
-    @commands.command()
-    async def unplonk(self, ctx, user: discord.Member):
-        """Removes a user from the bot's blacklist"""
-        async with ctx.con.transaction():
-            res = await ctx.con.execute('''
-                DELETE FROM plonks WHERE guild_id = $1 and user_id = $2
-                ''', ctx.guild.id, user.id)
-        deleted = int(res.split()[-1])
-        if deleted:
-            await ctx.send('User is no longer plonked.')
-        else:
-            await ctx.send('User is not plonked.')
 
 ###################
 #                 #
