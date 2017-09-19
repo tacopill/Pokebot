@@ -1116,7 +1116,7 @@ class Pokemon(Menus):
             await ctx.con.execute("""
                 UPDATE found SET owner=$1, party_position=NULL WHERE id=ANY($2) AND owner=$3
                 """, new.id, [mon['id'] for mon in selection], old.id)
-        offers = [[mon['id'] for mon in selected] for selected in selection]
+        offers = [[mon['id'] for mon in s] for s in selected]
         await stats_logger.log_event(ctx, 'successful_trade', other_id=user.id, offer=offers[0], other_offer=offers[1])
         await accept_msg.delete()
         await ctx.send(f'Completed trade between **{author.name}** and **{user.name}**.', delete_after=60)
