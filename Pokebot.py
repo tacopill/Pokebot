@@ -43,12 +43,13 @@ class SurvivorBot(commands.Bot):
         if not self.ready:
             return
 
-        async with self.db_pool.acquire() as con:
-            plonked = await con.fetchval("""
-                SELECT EXISTS(SELECT * FROM plonks WHERE user_id = $1 and guild_id = $2)
-                """, message.author.id, message.guild.id)
-            if plonked:
-                return
+        if message.guild is not None:
+            async with self.db_pool.acquire() as con:
+                plonked = await con.fetchval("""
+                    SELECT EXISTS(SELECT * FROM plonks WHERE user_id = $1 and guild_id = $2)
+                    """, message.author.id, message.guild.id)
+                if plonked:
+                    return
         split = message.content.split(' ')
         message.content = ' '.join([split[0].lower(), *split[1:]])
         await bot.process_commands(message)
