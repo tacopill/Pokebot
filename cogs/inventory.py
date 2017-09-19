@@ -159,6 +159,7 @@ class Inventory(Menus):
     @pokechannel()
     async def inventory(self, ctx):
         thumbnail = 'http://unitedsurvivorsgaming.com/backpack.png'
+        await stats_logger.log_event(ctx, 'inventory_accessed')
         player_data = await get_player(ctx, ctx.author.id)
         inv = player_data['inventory']
         all_items = await ctx.con.fetch('''
