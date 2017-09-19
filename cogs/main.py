@@ -61,9 +61,9 @@ class Main:
         """Adds a user to the bot's blacklist"""
         try:
             async with ctx.con.transaction():
-                await ctx.con.execute('''
+                await ctx.con.execute("""
                     INSERT INTO plonks (guild_id, user_id) VALUES ($1, $2)
-                    ''', ctx.guild.id, user.id)
+                    """, ctx.guild.id, user.id)
         except asyncpg.UniqueViolationError:
             await ctx.send('User is already plonked.')
         else:
@@ -75,9 +75,9 @@ class Main:
     async def unplonk(self, ctx, user: discord.Member):
         """Removes a user from the bot's blacklist"""
         async with ctx.con.transaction():
-            res = await ctx.con.execute('''
+            res = await ctx.con.execute("""
                 DELETE FROM plonks WHERE guild_id = $1 and user_id = $2
-                ''', ctx.guild.id, user.id)
+                """, ctx.guild.id, user.id)
         deleted = int(res.split()[-1])
         if deleted:
             await ctx.send('User is no longer plonked.')

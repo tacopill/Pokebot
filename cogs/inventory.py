@@ -32,8 +32,8 @@ class Inventory(Menus):
         title = f'{player_name} | {inventory["money"]}\ua750'
         description = 'Select items to buy{}.'.format(f' in multiples of {multiple}' if multiple > 1 else '')
         balls = await ctx.con.fetch("""
-                              SELECT name, price FROM items WHERE price != 0 AND name LIKE '%ball' ORDER BY price
-                              """)
+            SELECT name, price FROM items WHERE price != 0 AND name LIKE '%ball' ORDER BY price
+            """)
         balls = [dict(ball) for ball in balls]
         for ball in balls:
             ball['emoji'] = self.bot.get_emoji_named(ball['name'])
@@ -88,12 +88,12 @@ class Inventory(Menus):
         spacer = SPACER * 24
         player_name = ctx.author.name
         user_pokemon = await ctx.con.fetch("""
-                                     WITH p AS (SELECT num, name, form, form_id, legendary, mythical FROM pokemon)
-                                     SELECT f.id, f.num, f.name, original_owner, personality,
-                                            p.name AS base_name, p.form, legendary, mythical FROM found f
-                                     JOIN p ON p.num = f.num AND p.form_id = f.form_id
-                                     WHERE owner = $1 ORDER BY f.num, f.form_id;
-                                     """, ctx.author.id)
+            WITH p AS (SELECT num, name, form, form_id, legendary, mythical FROM pokemon)
+            SELECT f.id, f.num, f.name, original_owner, personality,
+            p.name AS base_name, p.form, legendary, mythical FROM found f
+            JOIN p ON p.num = f.num AND p.form_id = f.form_id
+            WHERE owner = $1 ORDER BY f.num, f.form_id;
+            """, ctx.author.id)
         user_pokemon = [dict(mon) for mon in user_pokemon]
         player_data = await get_player(ctx, ctx.author.id)
         await stats_logger.log_event(ctx, 'shop_accessed', multiple=0)
@@ -104,8 +104,8 @@ class Inventory(Menus):
         names = []
         options = []
         trainers = {t['user_id']: t for t in await ctx.con.fetch("""
-                                                           SELECT * FROM trainers WHERE user_id = ANY($1)
-                                                           """, set(m['original_owner'] for m in user_pokemon))}
+            SELECT * FROM trainers WHERE user_id = ANY($1)
+            """, set(m['original_owner'] for m in user_pokemon))}
         for mon in user_pokemon:
             name = get_name(mon)
             mon['shiny'] = is_shiny(trainers[mon['original_owner']], mon['personality'])
@@ -147,8 +147,8 @@ class Inventory(Menus):
                 sold.append(f"{mon['base_name']}{shiny}{f' x{count}' if count > 1 else ''}")
                 named.append(mon['num'])
         await ctx.con.execute("""
-                    UPDATE found SET owner=NULL WHERE id=ANY($1)
-                    """, sold_ids)
+            UPDATE found SET owner=NULL WHERE id=ANY($1)
+            """, sold_ids)
         inventory['money'] += total
         await stats_logger.log_event(ctx, 'shop_sold', pokemon=log_list, received=total)
         await set_inventory(ctx, ctx.author.id, inventory)
@@ -162,9 +162,9 @@ class Inventory(Menus):
         await stats_logger.log_event(ctx, 'inventory_accessed')
         player_data = await get_player(ctx, ctx.author.id)
         inv = player_data['inventory']
-        all_items = await ctx.con.fetch('''
+        all_items = await ctx.con.fetch("""
             SELECT name FROM items ORDER BY id ASC
-            ''')
+            """)
         em = discord.Embed(title=f'{ctx.author.name} | {inv["money"]}\ua750')
         items = []
         for item in all_items[1:]:
@@ -190,9 +190,9 @@ class Inventory(Menus):
         user = ctx.author
         player_data = await get_player(ctx, user.id)
         inv = player_data['inventory']
-        reward = await ctx.con.fetchrow('''
+        reward = await ctx.con.fetchrow("""
             SELECT * FROM rewards ORDER BY random() LIMIT 1
-            ''')
+            """)
         item, count = reward['name'], reward['num']
         item_name = 'Pokédollar' if item == 'money' else item
         inv[item] = inv.get(item, 0) + count
