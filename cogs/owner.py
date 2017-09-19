@@ -13,6 +13,11 @@ class Owner:
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command()
+    @commands.is_owner()
+    async def playing(self, ctx, *, status: str):
+        """Sets the 'Playing' message for the bot."""
+        await self.bot.change_presence(game=discord.Game(name=status))
 
 ###################
 #                 #

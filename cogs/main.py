@@ -21,12 +21,6 @@ class Main:
 #                 #
 ###################
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def playing(self, ctx, *, status: str):
-        """Sets the 'Playing' message for the bot."""
-        await self.bot.change_presence(game=discord.Game(name=status))
-
     def get_bot_uptime(self, *, brief=False):
         now = datetime.datetime.utcnow()
         delta = now - self.bot.uptime
