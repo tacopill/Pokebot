@@ -1,8 +1,8 @@
 ![intro](https://i.imgur.com/GWGthkH.png)
 
-# Survivor-Bot
+# Pokébot
 
-[![Discord](https://img.shields.io/badge/discord-join%20us-brightgreen.svg)](https://discord.gg/USbMMCf) 
+[![Discord](https://img.shields.io/badge/discord-join%20us-brightgreen.svg)](https://discord.gg/YU5rNsk) 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/MadWookie/Survivor-Bot/blob/master/LICENSE)
 
 ## Authors
