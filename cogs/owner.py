@@ -13,8 +13,10 @@ class Owner:
     def __init__(self, bot):
         self.bot = bot
 
+    async def __local_check(self, ctx):
+        return await self.bot.is_owner(ctx.author)
+
     @commands.command()
-    @commands.is_owner()
     async def playing(self, ctx, *, status: str):
         """Sets the 'Playing' message for the bot."""
         await self.bot.change_presence(game=discord.Game(name=status))
@@ -27,7 +29,6 @@ class Owner:
 
     @checks.db
     @commands.command()
-    @commands.is_owner()
     async def plonk(self, ctx, user: discord.Member):
         """Adds a user to the bot's blacklist"""
         try:
@@ -42,7 +43,6 @@ class Owner:
 
     @checks.db
     @commands.command()
-    @commands.is_owner()
     async def unplonk(self, ctx, user: discord.Member):
         """Removes a user from the bot's blacklist"""
         async with ctx.con.transaction():
@@ -62,7 +62,6 @@ class Owner:
 ###################
 
     @commands.command(hidden=True)
-    @commands.is_owner()
     async def reload(self, ctx, *, ext):
         """Reload a cog."""
         if not ext.startswith('cogs.'):
@@ -79,7 +78,6 @@ class Owner:
             await ctx.send(f'Cog {ext} reloaded.')
 
     @commands.command(hidden=True)
-    @commands.is_owner()
     async def load(self, ctx, *, ext):
         """Load a cog."""
         if not ext.startswith('cogs.'):
@@ -92,7 +90,6 @@ class Owner:
             await ctx.send(f'Cog {ext} loaded.')
 
     @commands.command(hidden=True)
-    @commands.is_owner()
     async def unload(self, ctx, *, ext):
         """Unload a cog."""
         if not ext.startswith('cogs.'):
@@ -111,15 +108,15 @@ class Owner:
 ###################
 
     @checks.db
+    @checks.no_delete
     @commands.command(hidden=True, name='execute')
-    @commands.is_owner()
     async def _execute(self, ctx, *, sql: str):
         await ctx.con.execute(sql)
         await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @checks.db
+    @checks.no_delete
     @commands.command(hidden=True, name='fetchval')
-    @commands.is_owner()
     async def _fetchval(self, ctx, *, sql: str):
         val = await ctx.con.fetchval(sql)
         await ctx.send(val)
