@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION rand_iv() RETURNS smallint AS 'SELECT rand(31)::small
 
 CREATE TYPE pokenature AS ENUM ('Hardy', 'Lonely', 'Brave', 'Adamant', 'Naughty', 'Bold', 'Docile', 'Relaxed', 'Impish', 'Lax', 'Timid', 'Hasty', 'Serious',
                                 'Jolly', 'Naive', 'Modest', 'Mild', 'Quiet', 'Bashful', 'Rash', 'Calm', 'Gentle', 'Sassy', 'Careful', 'Quirky');
-CREATE TYPE poketype AS ENUM ('Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel',
+CREATE TYPE poketype AS ENUM ('normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel',
                               'Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Ice', 'Dragon', 'Dark', 'Fairy');
 CREATE TYPE pokestat AS ENUM ('hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed');
 CREATE TYPE pokeball AS ENUM ('Pokeball', 'Greatball', 'Ultraball', 'Masterball');

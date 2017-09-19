@@ -98,7 +98,7 @@ class Inventory(Menus):
         player_data = await get_player(ctx, ctx.author.id)
         await stats_logger.log_event(ctx, 'shop_accessed', multiple=0)
         inventory = player_data['inventory']
-        header = f'**{player_name}**,\nSelect Pokemon to sell.\n' + wrap(f'**100**\ua750 Normal | **600**\ua750'
+        header = f'**{player_name}**,\nSelect Pokemon to sell.\n' + wrap(f'**100**\ua750 normal | **600**\ua750'
                                                                          f' Legendary {STAR} | **1000**\ua750'
                                                                          f' Mythical {GLOWING_STAR}', spacer, sep='\n')
         names = []

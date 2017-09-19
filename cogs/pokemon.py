@@ -505,7 +505,7 @@ class Pokemon(Menus):
               f' Click to exit your pc.'
 
         counts = wrap(f'**{total_found}** collected out of {total_pokemon} total Pokemon. {remaining} left to go!'
-                      f'\n**{total_found - mythics - legendaries}** Normal | **{legendaries}** Legendary {STAR}'
+                      f'\n**{total_found - mythics - legendaries}** normal | **{legendaries}** Legendary {STAR}'
                       f' | **{mythics}** Mythical {GLOWING_STAR}', spacer, sep='\n')
 
         header = '\n'.join([header, 'Use **!pokedex** to see which Pokémon you\'ve encountered!\nUse **!pokedex** ``#``'
@@ -910,7 +910,7 @@ class Pokemon(Menus):
                   f' Click to exit your pokedex.'
 
             counts = wrap(f'**{total_found}** encountered out of {total_pokemon} total Pokemon.'
-                          f'\n**{total_found - mythicals - legendaries}** Normal | **{legendaries}** Legendary {STAR}'
+                          f'\n**{total_found - mythicals - legendaries}** normal | **{legendaries}** Legendary {STAR}'
                           f' | **{mythicals}** Mythical {GLOWING_STAR}', spacer, sep='\n')
             header = '\n'.join([header, 'Use **!pc** to see which Pokémon you own!\nUse **!pokedex** ``#`` to take a closer look at a Pokémon!', key, counts])
 
