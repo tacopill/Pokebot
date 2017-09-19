@@ -32,7 +32,7 @@ class SurvivorBot(commands.Bot):
 
     async def on_ready(self):
         if not hasattr(self, 'uptime'):
-            self.uptime = datetime.datetime.now()
+            self.uptime = datetime.datetime.utcnow()
 
         self.ready = True
         print('------')
@@ -66,7 +66,10 @@ class SurvivorBot(commands.Bot):
                 fmt.append(f'{seconds}s')
             left = ' '.join(fmt)
             await ctx.send(f'You are on cooldown. Try again in {left}.', delete_after=10)
-            await ctx.message.delete()
+            try:
+                await ctx.message.delete()
+            except:
+                pass
         elif isinstance(error, errors.WrongChannel):
             if error.channel is not None:
                 msg = f":x: **You can't do that here.**\nPlease do this in {error.channel.mention}"
