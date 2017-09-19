@@ -1,0 +1,4 @@
+token = 'bot token'
+owner_ids = [  # int ids, must also include application owner's id or be left empty
+]
+dsn = 'postgres://user:pass@localhost:5432/database'
