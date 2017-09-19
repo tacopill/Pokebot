@@ -121,7 +121,7 @@ CREATE TABLE found (
     exp integer DEFAULT 0,
     item text REFERENCES items(name),
     party_position smallint,
-    owner bigint REFERENCES trainers(user_id) NOT NULL,
+    owner bigint REFERENCES trainers(user_id),
     original_owner bigint REFERENCES trainers(user_id) NOT NULL,
     moves text[] DEFAULT '{}' NOT NULL,
     personality bigint DEFAULT rand(4294967295),
