@@ -14,8 +14,13 @@ async def log_event(ctx, event_name: str, **info):
         """, event_name, user_id, message_id, channel_id, guild_id, info)
 
 
-async def get_event_count(ctx, event_name: str):
-    count = await ctx.con.fetchval("""
-        SELECT count(*) FROM statistics WHERE event_name=$1
-        """, event_name)
+async def get_event_count(ctx, *event_names):
+    if event_names:
+        count = await ctx.con.fetchval("""
+            SELECT count(*) FROM statistics WHERE event_name=ANY($1)
+            """, event_names)
+    else:
+        count = await ctx.con.fetchval("""
+            SELECT count(*) FROM statistics
+            """)
     return count
