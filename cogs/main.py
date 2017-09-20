@@ -4,8 +4,6 @@ from discord.ext import commands
 import asyncpg
 import discord
 
-from utils import checks
-
 
 ###################
 #                 #
@@ -54,7 +52,6 @@ class Main:
 #                 #
 ###################
 
-    @checks.db
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def plonk(self, ctx, user: discord.Member):
@@ -69,7 +66,6 @@ class Main:
         else:
             await ctx.send('User has been plonked.')
 
-    @checks.db
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def unplonk(self, ctx, user: discord.Member):

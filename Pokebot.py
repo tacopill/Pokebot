@@ -6,6 +6,7 @@ from discord.ext import commands
 import asyncpg
 import discord
 
+from utils.context import Context
 from utils import errors
 import config
 
@@ -43,16 +44,24 @@ class SurvivorBot(commands.Bot):
         if not self.ready:
             return
 
-        if message.guild is not None:
-            async with self.db_pool.acquire() as con:
-                plonked = await con.fetchval("""
-                    SELECT EXISTS(SELECT * FROM plonks WHERE user_id = $1 and guild_id = $2)
-                    """, message.author.id, message.guild.id)
-                if plonked:
-                    return
         split = message.content.split(' ')
-        message.content = ' '.join([split[0].lower(), *split[1:]])
-        await bot.process_commands(message)
+        if split[0] in (f'<@{self.user.id}>', f'<@!{self.user.id}>'):
+            try:
+                message.content = ' '.join([split[0], split[1].lower(), *split[2:]])
+            except IndexError:
+                return
+        else:
+            message.content = ' '.join([split[0].lower(), *split[1:]])
+        ctx = await self.get_context(message, cls=Context)
+        ctx.con = await bot.db_pool.acquire()
+
+        if ctx.guild is not None:
+            plonked = await ctx.con.fetchval('''
+                SELECT EXISTS(SELECT * FROM plonks WHERE user_id = $1 and guild_id = $2)
+                ''', message.author.id, message.guild.id)
+            if plonked:
+                return
+        await self.invoke(ctx)
 
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
@@ -106,23 +115,14 @@ for ext in initial_extensions:
         print(e)
 
 
-@bot.before_invoke
-async def before_invoke(ctx):
-    if getattr(ctx.command, '_db', False):
-        ctx.con = await bot.db_pool.acquire()
-
-
 @bot.after_invoke
 async def after_invoke(ctx):
+    await bot.db_pool.release(ctx.con)
     if getattr(ctx, '_delete_ctx', True):
         try:
             await ctx.message.delete()
         except:
             pass
-    try:
-        await bot.db_pool.release(ctx.con)
-    except AttributeError:
-        pass
 
 
 try:

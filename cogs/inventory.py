@@ -3,7 +3,6 @@ import discord
 
 from cogs.pokemon import pokechannel, get_player, set_inventory, get_name, is_shiny, get_star
 from utils.menus import Menus, STAR, GLOWING_STAR, SPACER
-import utils.statistics as stats_logger
 from utils.utils import wrap, unique
 from utils import checks
 
@@ -18,13 +17,12 @@ class Inventory(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.group(invoke_without_command=True)
     @pokechannel()
     async def shop(self, ctx, multiple=1):
         if not multiple:
             return
-        await stats_logger.log_event(ctx, 'shop_accessed', multiple=multiple)
+        await ctx.log_event('shop_accessed', multiple=multiple)
         player_name = ctx.author.name
         player_data = await get_player(ctx, ctx.author.id)
         inventory = player_data['inventory']
@@ -72,7 +70,7 @@ class Inventory(Menus):
             await ctx.send(f'{player_name} bought the following for {total}\ua750:\n' + '\n'.join(display),
                            delete_after=60)
             items = {item: bought.count(item) for item in bought}
-            await stats_logger.log_event(ctx, 'shop_purchased', items=items, spent=total)
+            await ctx.log_event('shop_purchased', items=items, spent=total)
             await set_inventory(ctx, ctx.author.id, inventory)
 
 ###################
@@ -81,7 +79,6 @@ class Inventory(Menus):
 #                 #
 ###################
 
-    @checks.db
     @shop.command()
     @pokechannel()
     async def sell(self, ctx):
@@ -96,7 +93,7 @@ class Inventory(Menus):
             """, ctx.author.id)
         user_pokemon = [dict(mon) for mon in user_pokemon]
         player_data = await get_player(ctx, ctx.author.id)
-        await stats_logger.log_event(ctx, 'shop_accessed', multiple=0)
+        await ctx.log_event('shop_accessed', multiple=0)
         inventory = player_data['inventory']
         header = f'**{player_name}**,\nSelect Pokemon to sell.\n' + wrap(f'**100**\ua750 normal | **600**\ua750'
                                                                          f' Legendary {STAR} | **1000**\ua750'
@@ -122,7 +119,6 @@ class Inventory(Menus):
         named = []
         sold = []
         sold_ids = []
-        log_list = []
         total = 0
         selected = unique(selected, key=lambda m: m['id'])
         for mon in sorted(selected, key=lambda m: m['num']):
@@ -136,7 +132,6 @@ class Inventory(Menus):
                 total += 100
             sold_ids.append(mon['id'])
             shiny = False
-            log_list.append({'id': mon['id']})
 
             if mon['num'] not in named:
                 count = 0
@@ -150,16 +145,15 @@ class Inventory(Menus):
             UPDATE found SET owner=NULL WHERE id=ANY($1)
             """, sold_ids)
         inventory['money'] += total
-        await stats_logger.log_event(ctx, 'shop_sold', pokemon=log_list, received=total)
+        await ctx.log_event('shop_sold', pokemon=sold_ids, received=total)
         await set_inventory(ctx, ctx.author.id, inventory)
         await ctx.send(f'{player_name} sold the following for {total}\ua750:\n' + '\n'.join(sold), delete_after=60)
 
-    @checks.db
     @commands.command(aliases=['inv', 'bag'])
     @pokechannel()
     async def inventory(self, ctx):
         thumbnail = 'http://unitedsurvivorsgaming.com/backpack.png'
-        await stats_logger.log_event(ctx, 'inventory_accessed')
+        await ctx.log_event('inventory_accessed')
         player_data = await get_player(ctx, ctx.author.id)
         inv = player_data['inventory']
         all_items = await ctx.con.fetch("""
@@ -181,7 +175,6 @@ class Inventory(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.command()
     @commands.cooldown(1, 10800, commands.BucketType.user)
     @pokechannel()
@@ -196,7 +189,7 @@ class Inventory(Menus):
         item, count = reward['name'], reward['num']
         item_name = 'Pokédollar' if item == 'money' else item
         inv[item] = inv.get(item, 0) + count
-        await stats_logger.log_event(ctx, 'reward_collected', item=item, amount=count)
+        await ctx.log_event('reward_collected', item=item, amount=count)
         await set_inventory(ctx, user.id, inv)
         await ctx.send(f"{user.name} has received {count} **{item_name}{'s' if count != 1 else ''}**!", delete_after=60)
 

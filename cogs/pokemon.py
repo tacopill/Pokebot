@@ -11,7 +11,6 @@ import discord
 from discord.ext import commands
 from fuzzywuzzy import process
 
-import utils.statistics as stats_logger
 from utils import errors, checks
 from utils.menus import Menus, STAR, GLOWING_STAR, SPARKLES, SPACER, ARROWS, DONE, CANCEL
 from utils.utils import wrap
@@ -364,7 +363,6 @@ class Pokemon(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.group(invoke_without_command=True, aliases=['pokemen', 'pokermon', 'digimon'])
     @commands.cooldown(1, 150, commands.BucketType.user)
     @pokechannel()
@@ -381,7 +379,7 @@ class Pokemon(Menus):
         trainer = await get_player(ctx, player_id)
         star = get_star(mon)
         shiny = is_shiny(trainer, mon['personality'])
-        await stats_logger.log_event(ctx, 'pokemon_encountered', pokemon_num=mon['num'], shiny=bool(shiny))
+        await ctx.log_event('pokemon_encountered', num=mon['num'], shiny=bool(shiny))
         if shiny:
             if mon['base_form']:
                 form = mon['base_form'] + ' '
@@ -419,7 +417,7 @@ class Pokemon(Menus):
                             user == ctx.author)
                 reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=20)
 
-                await stats_logger.log_event(ctx, 'item_used', item=reaction.emoji.name)
+                await ctx.log_event('item_used', item=reaction.emoji.name)
             except asyncio.TimeoutError:
                 embed.description = f'**{form}{mon["name"]}**{star}{shiny} escaped because you took too long! :stopwatch:'
                 await msg.edit(embed=embed, delete_after=60)
@@ -438,8 +436,7 @@ class Pokemon(Menus):
                         found_id = await ctx.con.fetchval("""
                             INSERT INTO found (num, form_id, ball, exp, owner, original_owner, personality) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
                             """, mon['num'], form_id, reaction.emoji.name, xp_to_level(level), player_id, player_id, mon['personality'])
-                    await stats_logger.log_event(ctx, 'pokemon_caught', attempts=catch_attempts+1,
-                                                 ball=reaction.emoji.name, id=found_id)
+                    await ctx.log_event('pokemon_caught', attempts=catch_attempts+1, ball=reaction.emoji.name, id=found_id)
                     break
                 else:
                     escape_quotes = ['Oh no! The Pokémon broke free!', 'Aww... It appeared to be caught!',
@@ -452,13 +449,11 @@ class Pokemon(Menus):
             else:
                 embed.description = wrap(f'You ran away from **{form}{mon["name"]}**{star}{shiny}!', ':chicken:')
                 await msg.edit(embed=embed, delete_after=60)
-                await stats_logger.log_event(ctx, 'pokemon_fled', catch_attempts=catch_attempts+1,
-                                             pokemon_num=mon['num'], shiny=bool(shiny))
+                await ctx.log_event('pokemon_fled', attempts=catch_attempts+1, num=mon['num'], shiny=bool(shiny))
                 break
         else:
             embed.description = f'**{form}{mon["name"]}**{star}{shiny} has escaped!'
-            await stats_logger.log_event(ctx, 'pokemon_fled', catch_attempts=catch_attempts+1,
-                                         pokemon_num=mon['num'], shiny=bool(shiny))
+            await ctx.log_event('pokemon_fled', attempts=catch_attempts+1, num=mon['num'], shiny=bool(shiny))
             await msg.edit(embed=embed, delete_after=60)
 
 ###################
@@ -467,13 +462,12 @@ class Pokemon(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.group(invoke_without_command=True)
     @pokechannel()
     async def pc(self, ctx, *, member: discord.Member = None):
         """Opens your PC."""
-        await stats_logger.log_event(ctx, 'pc_accessed')
         member = member or ctx.author
+        await ctx.log_event('pc_accessed', query_type='member', query=member.id)
 
         total_pokemon = await ctx.con.fetchval("""
             SELECT COUNT(DISTINCT num) FROM pokemon
@@ -575,20 +569,19 @@ class Pokemon(Menus):
         em.add_field(name='Evolutions', value=evo, inline=False)
         return em, image
 
-    @checks.db
     @pc.command(name='info')
     @pokechannel()
     async def pc_info(self, ctx, *, query: str):
         """Display information for a specific Pokemon from the user's PC."""
         if query.isdigit():  # If the user enters a Pokemon's number.
-            query_type = 'by_num'
+            query_type = 'num'
             query = int(query)
             mon_list = await ctx.con.fetch("""
                 SELECT * FROM found WHERE owner=$1 AND num=$2 ORDER BY party_position, num, form_id
                 """, ctx.author.id, query)
         elif any(comparator in query for comparator in ['<', '>', '=']):  # Advanced query
             valid_stats = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed']
-            query_type = 'by_statistic'
+            query_type = 'statistic'
 
             def query_repl(match):
                 if match.group(1) not in valid_stats or not match.group(3).isdigit() or \
@@ -614,7 +607,7 @@ class Pokemon(Menus):
             if not mon_list:
                 return await ctx.send(f'Pokemon with `{result}` does not exist.', delete_after=60)
         else:  # Fuzzy match the query with all the Pokemon in the user's PC.
-            query_type = 'by_fuzzy'
+            query_type = 'fuzzy'
             pokemon_names = await ctx.con.fetch("""
                 SELECT name FROM pokemon WHERE num=ANY(SELECT num FROM found WHERE owner=$1)
                 """, ctx.author.id)
@@ -627,7 +620,7 @@ class Pokemon(Menus):
                 """, ctx.author.id, result[0])
             mon_list = pokemon
 
-        await stats_logger.log_event(ctx, 'pc_accessed', query=query, query_type=query_type)
+        await ctx.log_event('pc_accessed', query=query, query_type=query_type)
 
         if len(mon_list) == 1:
             embed, im = await self.get_pc_info_embed(ctx, mon_list[0])
@@ -789,7 +782,7 @@ class Pokemon(Menus):
                         """, evolved, chosen_mon['id'])
                 inv = trainer['inventory']
                 inv[name] -= 1
-                await stats_logger.log_event(ctx, 'item_used', item=name)
+                await ctx.log_event('item_used', item=name)
                 if inv[name] == 0:
                     del inv[name]
                 await set_inventory(ctx, ctx.author.id, inv)
@@ -813,7 +806,6 @@ class Pokemon(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.command()
     @pokechannel()
     async def party(self, ctx):
@@ -822,7 +814,7 @@ class Pokemon(Menus):
             FROM pokemon AS p JOIN found as f ON p.num = f.num AND p.form_id = f.form_id
             WHERE f.party_position IS NOT NULL AND f.owner=$1 ORDER BY f.party_position ASC
             """, ctx.author.id)
-        await stats_logger.log_event(ctx, 'party_accessed')
+        await ctx.log_event('party_accessed')
         header = f"__**{ctx.author.name}'s Party**__"
         if len(party) == 0:
             header += " __**is empty.**__"
@@ -873,12 +865,10 @@ class Pokemon(Menus):
 
         return embed
 
-    @checks.db
     @commands.group(invoke_without_command=True)
     @pokechannel()
     async def pokedex(self, ctx, *, member=None):
         """Shows you your Pokedex through a reaction menu."""
-        await stats_logger.log_event(ctx, 'pokedex_accessed', query=member, shiny=False)
         pokedex = self.bot.get_emoji_named('Pokedex')
 
         member = await poke_converter(ctx, member) or ctx.author
@@ -887,6 +877,7 @@ class Pokemon(Menus):
             SELECT COUNT(DISTINCT num) FROM pokemon
             """)
         if isinstance(member, discord.Member):
+            await ctx.log_event('pokedex_accessed', query_type='member', query=member.id, shiny=False)
             seen = await ctx.con.fetch("""
                 WITH p AS (SELECT num, name, mythical, legendary FROM pokemon WHERE form_id = 0)
                 SELECT s.num, name, mythical, legendary FROM seen s JOIN p ON s.num = p.num
@@ -921,12 +912,14 @@ class Pokemon(Menus):
             await self.reaction_menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
             return
         elif isinstance(member, int):
+            query_type = 'num'
             if 0 >= member or member > total_pokemon:
                 return await ctx.send(f'Pokemon {member} does not exist.')
 
             image = self.image_path.format('normal', member, 0)
             info = await get_pokemon(ctx, member)
         elif isinstance(member, str):
+            query_type = 'fuzzy'
             pokemon_records = await ctx.con.fetch("""
                 SELECT name FROM pokemon
                 """)
@@ -943,9 +936,9 @@ class Pokemon(Menus):
             image = self.image_path.format('normal', 1, 0)
             info = await get_pokemon(ctx, 1)
         embed = await self.get_pokedex_embed(ctx, info)
+        await ctx.log_event('pokedex_accessed', query_type=query_type, query=member, shiny=False)
         await ctx.send(embed=embed, file=discord.File(image, filename='pokemon.gif'), delete_after=120)
 
-    @checks.db
     @pokedex.command(name='shiny')
     @pokechannel()
     async def pokedex_shiny(self, ctx, *, pokemon):
@@ -954,7 +947,7 @@ class Pokemon(Menus):
         except ValueError:
             pass
 
-        await stats_logger.log_event(ctx, 'pokedex_accessed', query=pokemon, shiny=True)
+        await ctx.log_event('pokedex_accessed', query=pokemon, shiny=True)
         total_pokemon = await ctx.con.fetchval("""
             SELECT COUNT(DISTINCT num) FROM pokemon
             """)
@@ -987,7 +980,6 @@ class Pokemon(Menus):
 #                 #
 ###################
 
-    @checks.db
     @commands.command()
     @pokechannel()
     async def trade(self, ctx, *, user: discord.Member):
@@ -1117,8 +1109,8 @@ class Pokemon(Menus):
                 UPDATE found SET owner=$1, party_position=NULL WHERE id=ANY($2) AND owner=$3
                 """, new.id, [mon['id'] for mon in selection], old.id)
         offers = [[mon['id'] for mon in s] for s in selected]
-        await stats_logger.log_event(ctx, 'successful_trade', other_id=user.id, offer=offers[0], other_offer=offers[1])
         await accept_msg.delete()
+        await ctx.log_event('successful_trade', other_id=user.id, offer=offers[0], other_offer=offers[1])
         await ctx.send(f'Completed trade between **{author.name}** and **{user.name}**.', delete_after=60)
 
 
