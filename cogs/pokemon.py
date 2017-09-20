@@ -862,7 +862,7 @@ class Pokemon(Menus):
 #                 #
 ###################
 
-    async def get_pokedex_embed(self, ctx, mon, shiny=False):
+    async def get_pokedex_embed(self, ctx, mon):
         pokedex = self.bot.get_emoji_named('Pokedex')
         evo = await get_evolution_chain(ctx, mon['num'])
         embed = discord.Embed(description=wrap(f"__{mon['name']}{get_star(mon)}'s Information__", pokedex) +
