@@ -72,14 +72,12 @@ class Owner:
 #                 #
 ###################
 
-    @checks.db
     @checks.no_delete
     @commands.command(hidden=True, name='execute')
     async def _execute(self, ctx, *, sql: str):
         await ctx.con.execute(sql)
         await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
-    @checks.db
     @checks.no_delete
     @commands.command(hidden=True, name='fetchval')
     async def _fetchval(self, ctx, *, sql: str):
