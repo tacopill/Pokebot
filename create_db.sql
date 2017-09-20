@@ -34,7 +34,7 @@ CREATE TABLE pokenum (
 
 CREATE TABLE pokemon (
     num smallint REFERENCES pokenum(num),
-    name text,
+    base_name text,
     form text,
     form_id smallint,
     generation smallint,
