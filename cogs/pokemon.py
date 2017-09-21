@@ -154,7 +154,7 @@ class PokemonGame(Menus):
 
         total_pokemon = len(await get_all_pokemon(ctx))
         trainer = await Trainer.from_user_id(ctx, member.id)
-        found = await FoundPokemon.from_owner(ctx, trainer)
+        found = await trainer.get_pokemon()
         total_found = len(found)
         remaining = total_pokemon - total_found
 
@@ -259,7 +259,7 @@ class PokemonGame(Menus):
             stat, comparator, value = result.split(' ')
             if comparator == '=':
                 comparator += '='
-            found = await FoundPokemon.from_owner(ctx, trainer)
+            found = await trainer.get_pokemon()
             mon_list = []
             for record in found:
                 stats = record.stats
