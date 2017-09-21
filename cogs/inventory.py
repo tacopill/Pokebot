@@ -1,10 +1,15 @@
 from discord.ext import commands
 import discord
 
-from cogs.pokemon import pokechannel, get_player, set_inventory, get_name, is_shiny, get_star
+from cogs.pokemon import pokechannel
 from utils.menus import Menus, STAR, GLOWING_STAR, SPACER
 from utils.utils import wrap, unique
-from utils import checks
+from utils.dataclasses import *
+
+async def get_rewards(ctx):
+    return await ctx.con.fetch("""
+        SELECT * FROM rewards
+        """)
 
 
 class Inventory(Menus):
@@ -24,8 +29,8 @@ class Inventory(Menus):
             return
         await ctx.log_event('shop_accessed', multiple=multiple)
         player_name = ctx.author.name
-        player_data = await get_player(ctx, ctx.author.id)
-        inventory = player_data['inventory']
+        player_data = await Trainer.from_user_id(ctx, ctx.author.id)
+        inventory = player_data.inventory
         thumbnail = 'http://unitedsurvivorsgaming.com/shop.png'
         title = f'{player_name} | {inventory["money"]}\ua750'
         description = 'Select items to buy{}.'.format(f' in multiples of {multiple}' if multiple > 1 else '')
@@ -71,7 +76,7 @@ class Inventory(Menus):
                            delete_after=60)
             items = {item: bought.count(item) for item in bought}
             await ctx.log_event('shop_purchased', items=items, spent=total)
-            await set_inventory(ctx, ctx.author.id, inventory)
+            await player_data.set_inventory(inventory)
 
 ###################
 #                 #
@@ -84,31 +89,20 @@ class Inventory(Menus):
     async def sell(self, ctx):
         spacer = SPACER * 24
         player_name = ctx.author.name
-        user_pokemon = await ctx.con.fetch("""
-            WITH p AS (SELECT num, name, form, form_id, legendary, mythical FROM pokemon)
-            SELECT f.id, f.num, f.name, original_owner, personality,
-            p.name AS base_name, p.form, legendary, mythical FROM found f
-            JOIN p ON p.num = f.num AND p.form_id = f.form_id
-            WHERE owner = $1 ORDER BY f.num, f.form_id;
-            """, ctx.author.id)
+        trainer = await Trainer.from_user_id(ctx, ctx.author.id)
+        user_pokemon = await trainer.get_pokemon()
         user_pokemon = [dict(mon) for mon in user_pokemon]
-        player_data = await get_player(ctx, ctx.author.id)
         await ctx.log_event('shop_accessed', multiple=0)
-        inventory = player_data['inventory']
+        inventory = trainer.inventory
         header = f'**{player_name}**,\nSelect Pokemon to sell.\n' + wrap(f'**100**\ua750 normal | **600**\ua750'
                                                                          f' Legendary {STAR} | **1000**\ua750'
                                                                          f' Mythical {GLOWING_STAR}', spacer, sep='\n')
         names = []
         options = []
-        trainers = {t['user_id']: t for t in await ctx.con.fetch("""
-            SELECT * FROM trainers WHERE user_id = ANY($1)
-            """, set(m['original_owner'] for m in user_pokemon))}
         for mon in user_pokemon:
-            name = get_name(mon)
-            mon['shiny'] = is_shiny(trainers[mon['original_owner']], mon['personality'])
             options.append("**{}.** {}{}{}".format(
-                mon['num'], name, get_star(mon), mon['shiny']))
-            names.append(name)
+                mon.num, mon.display_name, mon.star, mon.shiny))
+            names.append(mon.display_name)
         if not options:
             await ctx.send("You don't have any pokemon to sell.", delete_after=60)
             return
@@ -118,35 +112,33 @@ class Inventory(Menus):
             return
         named = []
         sold = []
-        sold_ids = []
+        sold_objs = []
         total = 0
         selected = unique(selected, key=lambda m: m['id'])
         for mon in sorted(selected, key=lambda m: m['num']):
-            if mon['shiny']:
+            if mon.shiny:
                 total += 1000
-            if mon['mythical']:
+            if mon.mythical:
                 total += 1000
-            elif mon['legendary']:
+            elif mon.legendary:
                 total += 600
             else:
                 total += 100
-            sold_ids.append(mon['id'])
-            shiny = False
+            sold_objs.append(mon)
 
-            if mon['num'] not in named:
+            if mon.num not in named:
                 count = 0
                 for m in selected:
-                    if m['num'] == mon['num']:
+                    if m.num == mon.num:
                         count += 1
-                        shiny = shiny or m['shiny']
-                sold.append(f"{mon['base_name']}{shiny}{f' x{count}' if count > 1 else ''}")
+                shiny = GLOWING_STAR if mon.shiny else ''
+                sold.append(f"{mon.display_name}{shiny}{f' x{count}' if count > 1 else ''}")
                 named.append(mon['num'])
-        await ctx.con.execute("""
-            UPDATE found SET owner=NULL WHERE id=ANY($1)
-            """, sold_ids)
+        for mon in sold_objs:
+            await mon.transfer_ownership(None)
         inventory['money'] += total
-        await ctx.log_event('shop_sold', pokemon=sold_ids, received=total)
-        await set_inventory(ctx, ctx.author.id, inventory)
+        await ctx.log_event('shop_sold', pokemon=[m.id for m in sold_objs], received=total)
+        await trainer.set_inventory(inventory)
         await ctx.send(f'{player_name} sold the following for {total}\ua750:\n' + '\n'.join(sold), delete_after=60)
 
     @commands.command(aliases=['inv', 'bag'])
@@ -154,8 +146,8 @@ class Inventory(Menus):
     async def inventory(self, ctx):
         thumbnail = 'http://unitedsurvivorsgaming.com/backpack.png'
         await ctx.log_event('inventory_accessed')
-        player_data = await get_player(ctx, ctx.author.id)
-        inv = player_data['inventory']
+        player_data = await Trainer.from_user_id(ctx, ctx.author.id)
+        inv = player_data.inventory
         all_items = await ctx.con.fetch("""
             SELECT name FROM items ORDER BY id ASC
             """)
@@ -181,8 +173,8 @@ class Inventory(Menus):
     async def reward(self, ctx):
         """Collect a reward for free every 3 hours!"""
         user = ctx.author
-        player_data = await get_player(ctx, user.id)
-        inv = player_data['inventory']
+        player_data = await Trainer.from_user_id(ctx, user.id)
+        inv = player_data.inventory
         reward = await ctx.con.fetchrow("""
             SELECT * FROM rewards ORDER BY random() LIMIT 1
             """)
@@ -190,7 +182,7 @@ class Inventory(Menus):
         item_name = 'Pokédollar' if item == 'money' else item
         inv[item] = inv.get(item, 0) + count
         await ctx.log_event('reward_collected', item=item, amount=count)
-        await set_inventory(ctx, user.id, inv)
+        await player_data.set_inventory(inv)
         await ctx.send(f"{user.name} has received {count} **{item_name}{'s' if count != 1 else ''}**!", delete_after=60)
 
 
