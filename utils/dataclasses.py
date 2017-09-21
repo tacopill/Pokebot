@@ -51,16 +51,16 @@ class Trainer(Record):
     async def get_pokemon(self, party=False, seen=False):
         if party:
             pokemon = await self.ctx.con.fetch("""
-                SELECT * FROM found WHERE owner=$1 AND party_position IS NOT NULL 
+                SELECT * FROM found WHERE owner=$1 AND party_position IS NOT NULL ORDER BY party_position
                 """, self.user_id)
         elif seen:
             pokemon = await self.ctx.con.fetch("""
-                SELECT * FROM seen WHERE user_id=$1
+                SELECT * FROM seen WHERE user_id=$1 ORDER BY num
                 """, self.user_id)
             return [await Pokemon.from_num(self.ctx, p['num']) for p in pokemon]
         else:
             pokemon = await self.ctx.con.fetch("""
-                SELECT * FROM found WHERE owner=$1
+                SELECT * FROM found WHERE owner=$1 ORDER BY party_position, num, form_id, id
                 """, self.user_id)
 
         return [await FoundPokemon.from_id(self.ctx, p['id']) for p in pokemon]
