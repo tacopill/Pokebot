@@ -301,13 +301,12 @@ class FoundPokemon(Pokemon):
         self.__dict__.update(base.__dict__)
         self.nature = await self.ctx._nature_query.fetchrow(self.personality % 25)
         self.shiny = await self.is_shiny()
-        self.display_name = self._get_display_name()
         self.level = level_from_xp(self.exp)
         self.evolution_info = await self.get_evolution_info()
-        self.stats = self._get_stats()
         super().assign_extra_data()
 
-    def _get_display_name(self):
+    @property
+    def display_name(self):
         if self.form is not None:
             name = f"{self.form} {self.base_name}"
         else:
@@ -414,7 +413,8 @@ class FoundPokemon(Pokemon):
 
         return await query.fetch(self.num)
 
-    def _get_stats(self):
+    @property
+    def stats(self):
         stat_dict = {}
         for stat in ['base_hp', 'base_attack', 'base_defense',
                      'base_sp_attack', 'base_sp_defense', 'base_speed']:
