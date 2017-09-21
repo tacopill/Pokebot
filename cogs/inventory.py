@@ -91,7 +91,6 @@ class Inventory(Menus):
         player_name = ctx.author.name
         trainer = await Trainer.from_user_id(ctx, ctx.author.id)
         user_pokemon = await trainer.get_pokemon()
-        user_pokemon = [dict(mon) for mon in user_pokemon]
         await ctx.log_event('shop_accessed', multiple=0)
         inventory = trainer.inventory
         header = f'**{player_name}**,\nSelect Pokemon to sell.\n' + wrap(f'**100**\ua750 normal | **600**\ua750'
@@ -100,8 +99,9 @@ class Inventory(Menus):
         names = []
         options = []
         for mon in user_pokemon:
-            options.append("**{}.** {}{}{}".format(
-                mon.num, mon.display_name, mon.star, mon.shiny))
+            shiny = GLOWING_STAR if mon.shiny else ''
+            options.append("{} **{}.** {}{}{}".format('\📍' if mon.party_position is not None else '',
+                mon.num, mon.display_name, mon.star, shiny))
             names.append(mon.display_name)
         if not options:
             await ctx.send("You don't have any pokemon to sell.", delete_after=60)
@@ -114,8 +114,8 @@ class Inventory(Menus):
         sold = []
         sold_objs = []
         total = 0
-        selected = unique(selected, key=lambda m: m['id'])
-        for mon in sorted(selected, key=lambda m: m['num']):
+        selected = unique(selected, key=lambda m: m.id)
+        for mon in sorted(selected, key=lambda m: m.num):
             if mon.shiny:
                 total += 1000
             if mon.mythical:
@@ -133,7 +133,7 @@ class Inventory(Menus):
                         count += 1
                 shiny = GLOWING_STAR if mon.shiny else ''
                 sold.append(f"{mon.display_name}{shiny}{f' x{count}' if count > 1 else ''}")
-                named.append(mon['num'])
+                named.append(mon.num)
         for mon in sold_objs:
             await mon.transfer_ownership(None)
         inventory['money'] += total

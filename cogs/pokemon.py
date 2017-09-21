@@ -190,7 +190,7 @@ class PokemonGame(Menus):
             shiny = SPARKLES if shiny else ''
             count = f" x{mon_count}" if mon_count > 1 else ''
             name = mon.display_name
-            options.append("{} **{}.** {}{}{}{}".format('\📍' if mon.party_position is not None else '',
+            options.append("{} **{}.** {}{}{}{}".format('' if mon.party_position is not None else '',
                                                         mon.num, name, mon.star, shiny, count))
         await self.reaction_menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
 
