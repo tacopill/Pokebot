@@ -302,11 +302,11 @@ class FoundPokemon(Pokemon):
         self.nature = await self.ctx._nature_query.fetchrow(self.personality % 25)
         self.stats = self.get_stats()
         self.shiny = await self.is_shiny()
-        self.display_name = self.get_display_name()
+        self.display_name = self._get_display_name()
         self.level = level_from_xp(self.exp)
         self.evolution_info = await self.get_evolution_info()
 
-    def get_display_name(self):
+    def _get_display_name(self):
         if self.form is not None:
             name = f"{self.form} {self.base_name}"
         else:
