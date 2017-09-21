@@ -2,10 +2,7 @@ from discord.ext import commands
 import discord
 
 from utils import checks
-
-
-def pin_check(m):
-    return not m.pinned
+from utils.dataclasses import *
 
 
 class Owner:
@@ -83,6 +80,11 @@ class Owner:
     async def _fetchval(self, ctx, *, sql: str):
         val = await ctx.con.fetchval(sql)
         await ctx.send(val)
+
+    @commands.command()
+    async def test(self, ctx, num: int):
+        p = await FoundPokemon.from_id(ctx, num)
+        print(p)
 
 
 def setup(bot):
