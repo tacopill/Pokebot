@@ -373,7 +373,7 @@ class PokemonGame(Menus):
                             await chosen_mon.set_party_position(i)
                             break
             elif str(rxn) == '\N{CROSS MARK}':
-                if chosen_mon.party_position is not None:
+                if chosen_mon.party_position is None:
                     await ctx.send('This Pokemon is not in your party!')
                     break
                 else:
