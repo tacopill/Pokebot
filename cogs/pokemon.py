@@ -150,9 +150,7 @@ class PokemonGame(Menus):
         member = member or ctx.author
         await ctx.log_event('pc_accessed', query_type='member', query=member.id)
 
-        total_pokemon = await ctx.con.fetchval("""
-            SELECT COUNT(DISTINCT num) FROM pokemon
-            """)
+        total_pokemon = len(await get_all_pokemon(ctx))
         trainer = await Trainer.from_user_id(ctx, member.id)
         found = await FoundPokemon.from_owner(ctx, trainer)
         total_found = len(found)
@@ -269,10 +267,7 @@ class PokemonGame(Menus):
                 return await ctx.send(f'Pokemon with `{result}` does not exist.', delete_after=60)
         else:  # Fuzzy match the query with all the Pokemon in the user's PC.
             query_type = 'fuzzy'
-            pokemon_names = await ctx.con.fetch("""
-                SELECT base_name FROM pokemon WHERE num=ANY(SELECT num FROM found WHERE owner=$1)
-                """, ctx.author.id)
-            pokemon_names = [mon['base_name'] for mon in pokemon_names]
+            pokemon_names = [p.base_name for p in await get_all_pokemon(ctx)]
             result = process.extractOne(query, pokemon_names)
             if result[1] < 70:
                 return await ctx.send(f'Pokemon {query} does not exist.', delete_after=60)
@@ -495,9 +490,7 @@ class PokemonGame(Menus):
 
         member = await poke_converter(ctx, member) or ctx.author
 
-        total_pokemon = await ctx.con.fetchval("""
-            SELECT COUNT(DISTINCT num) FROM pokemon
-            """)
+        total_pokemon = len(await get_all_pokemon(ctx))
         if isinstance(member, discord.Member):
             trainer = await Trainer.from_user_id(ctx, member.id)
             await ctx.log_event('pokedex_accessed', query_type='member', query=member.id, shiny=False)
@@ -539,17 +532,12 @@ class PokemonGame(Menus):
             info = await Pokemon.from_num(ctx, member)
         elif isinstance(member, str):
             query_type = 'fuzzy'
-            pokemon_records = await ctx.con.fetch("""
-                SELECT base_name FROM pokemon
-                """)
-            pokemon_names = [mon['base_name'] for mon in pokemon_records]
+            pokemon_names = [p.base_name for p in await get_all_pokemon(ctx)]
             result = list(process.extractOne(member, pokemon_names))
             if result[1] < 70:
                 return await ctx.send(f'Pokemon {member} does not exist.')
-            pokemon_number = await ctx.con.fetchval("""
-                SELECT num FROM pokemon WHERE base_name=$1
-                """, result[0])
-            info = await Pokemon.from_num(ctx, pokemon_number)
+            pokemon_number = await Pokemon.from_name(ctx, result[0])
+            info = await Pokemon.from_num(ctx, pokemon_number.num)
             image = self.image_path.format('normal', info.num, 0)
         else:
             query_type = None
@@ -567,9 +555,7 @@ class PokemonGame(Menus):
         except ValueError:
             pass
 
-        total_pokemon = await ctx.con.fetchval("""
-            SELECT COUNT(DISTINCT num) FROM pokemon
-            """)
+        total_pokemon = len(await get_all_pokemon(ctx))
         if isinstance(pokemon, int):
             query_type = 'num'
             if 0 >= pokemon or pokemon > total_pokemon:
@@ -579,17 +565,12 @@ class PokemonGame(Menus):
             info = await Pokemon.from_num(ctx, pokemon)
         elif isinstance(pokemon, str):
             query_type = 'fuzzy'
-            pokemon_records = await ctx.con.fetch("""
-                SELECT base_name FROM pokemon
-                """)
-            pokemon_names = [mon['base_name'] for mon in pokemon_records]
+            pokemon_names = [p.base_name for p in await get_all_pokemon(ctx)]
             result = list(process.extractOne(pokemon, pokemon_names))
             if result[1] < 70:
                 return await ctx.send(f'Pokemon {pokemon} does not exist.')
-            pokemon_number = await ctx.con.fetchval("""
-                SELECT num FROM pokemon WHERE base_name=$1
-                """, result[0])
-            info = await Pokemon.from_num(ctx, pokemon_number)
+            pokemon_number = await Pokemon.from_name(ctx, result[0])
+            info = await Pokemon.from_num(ctx, pokemon_number.num)
             image = self.image_path.format('shiny', info.num, 0)
         else:
             query_type = None

@@ -18,6 +18,13 @@ def level_from_xp(exp: int):
     return level
 
 
+async def get_all_pokemon(ctx):
+    pokemon = await ctx.con.fetch("""
+        SELECT num FROM pokemon
+        """)
+    return [await Pokemon.from_num(ctx, p['num']) for p in pokemon]
+
+
 class Record:
     def __init__(self, ctx, rec):
         self.ctx = ctx
