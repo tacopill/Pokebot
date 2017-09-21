@@ -22,6 +22,8 @@ pokeballs = ('Pokeball', 'Greatball', 'Ultraball', 'Masterball')
 
 def pokechannel():
     def check(ctx):
+        if ctx.guild is None:
+            return True
         if ctx.channel.name in ['pokemon']:
             return True
         raise errors.WrongChannel(discord.utils.get(ctx.guild.channels, name='pokemon'))

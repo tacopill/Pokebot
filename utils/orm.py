@@ -2,6 +2,7 @@ import math
 import typing
 
 from fuzzywuzzy import process
+import discord
 
 from utils.menus import STAR, GLOWING_STAR, ARROWS
 from utils.errors import *
@@ -44,7 +45,10 @@ class Trainer(Record):
                 """)
         player_data = await query.fetchrow(user_id)
         c = cls(ctx, player_data)
-        c.user = ctx.guild.get_member(user_id)
+        if ctx.guild is not None:
+            c.user = ctx.guild.get_member(user_id)
+        else:
+            c.user = discord.utils.get(list(ctx.bot.get_all_members()), id=user_id)
 
         return c
 
