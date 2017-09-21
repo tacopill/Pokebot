@@ -330,7 +330,10 @@ class FoundPokemon(Pokemon):
                 UPDATE found SET owner=$1, party_position=NULL WHERE id=$2 AND owner=$3
             """)
 
-        await query.fetch(new_trainer.user_id, self.id, self.owner)
+        if new_trainer is None:
+            await query.fetch(None, self.id, self.owner)
+        else:
+            await query.fetch(new_trainer.user_id, self.id, self.owner)
 
     async def add_experience(self, amount: int):
         try:
