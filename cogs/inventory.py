@@ -4,7 +4,7 @@ import discord
 from cogs.pokemon import pokechannel
 from utils.menus import Menus, STAR, GLOWING_STAR, SPACER
 from utils.utils import wrap, unique
-from utils.dataclasses import *
+from utils.orm import *
 
 async def get_rewards(ctx):
     return await ctx.con.fetch("""

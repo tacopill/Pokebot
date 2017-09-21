@@ -10,7 +10,7 @@ from discord.ext import commands
 from fuzzywuzzy import process
 
 from utils import errors
-from utils.dataclasses import *
+from utils.orm import *
 from utils.menus import Menus, STAR, GLOWING_STAR, SPARKLES, SPACER, ARROWS, DONE, CANCEL
 from utils.utils import wrap
 
