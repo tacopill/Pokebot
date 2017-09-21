@@ -399,7 +399,10 @@ class FoundPokemon(Pokemon):
                     to_evolve = record['next']
                     break
 
-        return to_evolve
+        if to_evolve is None:
+            return
+        else:
+            return await Pokemon.from_num(self.ctx, to_evolve)
 
     async def evolve(self, evolve_to: 'Pokemon'):
         try:
@@ -411,7 +414,7 @@ class FoundPokemon(Pokemon):
 
         await query.fetch(evolve_to.num, self.id)
 
-        return await FoundPokemon.from_id(self.id)
+        return await FoundPokemon.from_id(self.ctx, self.id)
 
     async def get_evolution_info(self):
         try:
