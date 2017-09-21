@@ -115,7 +115,7 @@ class Pokemon(Record):
 
         mon_data = await query.fetchrow(num, form_id)
         c = cls(ctx, mon_data)
-        c.pokemon_assign_extra_data()
+        c.assign_extra_data()
 
         return c
 
@@ -157,12 +157,12 @@ class Pokemon(Record):
         mon = await query.fetchrow()
 
         c = cls(ctx, mon)
-        c.pokemon_assign_extra_data()
+        c.assign_extra_data()
         c.shiny = await c.is_shiny(trainer=trainer)
 
         return c
 
-    def pokemon_assign_extra_data(self):
+    def assign_extra_data(self):
         self.color = self.get_color()
         self.star = self.get_star()
         if 'display_name' not in self.__dict__:
@@ -300,11 +300,12 @@ class FoundPokemon(Pokemon):
         base = await Pokemon.from_num(self.ctx, self.num, form_id=self.form_id)
         self.__dict__.update(base.__dict__)
         self.nature = await self.ctx._nature_query.fetchrow(self.personality % 25)
-        self.stats = self.get_stats()
         self.shiny = await self.is_shiny()
         self.display_name = self._get_display_name()
         self.level = level_from_xp(self.exp)
         self.evolution_info = await self.get_evolution_info()
+        self.stats = self._get_stats()
+        super().assign_extra_data()
 
     def _get_display_name(self):
         if self.form is not None:
@@ -413,16 +414,15 @@ class FoundPokemon(Pokemon):
 
         return await query.fetch(self.num)
 
-    def get_stats(self):
-        level = level_from_xp(self.exp)
+    def _get_stats(self):
         stat_dict = {}
         for stat in ['base_hp', 'base_attack', 'base_defense',
                      'base_sp_attack', 'base_sp_defense', 'base_speed']:
             stat = stat.replace('base_', '')
             base = math.floor((((2 * getattr(self, f'base_{stat}') + getattr(self, f'{stat}_iv') +
-                                getattr(self, f'{stat}_ev') / 4)) * level) / 100) + 5
+                                getattr(self, f'{stat}_ev') / 4)) * self.level) / 100) + 5
             if stat == 'hp':
-                final = base + level + 5
+                final = base + self.level + 5
             elif self.nature['increase'] == stat:
                 final = base * 1.1
             elif self.nature['decrease'] == stat:
