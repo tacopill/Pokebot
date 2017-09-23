@@ -522,8 +522,8 @@ class FoundPokemon(Pokemon):
             query = ctx._foundpokemon_from_num
         except AttributeError:
             query = ctx._foundpokemon_from_num = await ctx.con.prepare("""
-                SELECT *, (SELECT ARRAY(SELECT color FROM types WHERE types.name = ANY(type))) AS colors
-                FROM found WHERE num=$1 ORDER BY party_position ASC, num, form_id
+                SELECT *, (SELECT ARRAY(SELECT color FROM types WHERE types.name = ANY(types.name))) AS colors
+                FROM found WHERE num=$1 ORDER BY party_position, num, form_id
                 """)
 
         mon_data = await query.fetch(num)
