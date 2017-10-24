@@ -1,4 +1,4 @@
--e git+https://github.com/Rapptz/discord.py.git@rewrite#egg=discord.py
-# python-Levenshtein==0.12.0 # Optional
-fuzzywuzzy==0.15.1
-asyncpg==0.12.0
+git+https://github.com/Rapptz/discord.py.git@rewrite#egg=discord.py
+# python-Levenshtein # Optional
+fuzzywuzzy
+asyncpg
