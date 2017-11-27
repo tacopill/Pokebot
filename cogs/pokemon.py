@@ -1,5 +1,4 @@
 from random import randint
-import itertools
 import asyncio
 import random
 import re
@@ -10,7 +9,7 @@ from discord.ext import commands
 from fuzzywuzzy import process
 
 from utils import errors
-from utils.orm import *
+from utils.orm import Pokemon, Trainer, FoundPokemon, xp_to_level, get_all_pokemon
 from utils.menus import Menus, STAR, GLOWING_STAR, SPARKLES, SPACER, ARROWS, DONE, CANCEL
 from utils.utils import wrap
 
@@ -85,7 +84,7 @@ class PokemonGame(Menus):
                               (f'\nUse a {balls[0]} to catch it!' if balls else ''))
         embed.color = mon.color
         embed.set_author(icon_url=ctx.author.avatar_url, name=player_name)
-        embed.set_image(url=self.image_path.format('shiny' if mon.shiny else 'normal', mon['num'], 0))
+        embed.set_image(url=self.image_path.format('shiny' if mon.shiny else 'normal', mon.num, 0))
         msg = await ctx.send(embed=embed)
         await trainer.see(mon)
         catch_attempts = 0
@@ -223,7 +222,7 @@ class PokemonGame(Menus):
             em.description += f"**Party Position**: {mon.party_position + 1}"
 
         shiny_status = 'shiny' if mon.shiny else 'normal'
-        image = self.image_path.format(shiny_status, mon.num, 0)  # replace 0 with mon['form_id'] to support forms
+        image = self.image_path.format(shiny_status, mon.num, 0)  # replace 0 with mon.form_id to support forms
 
         stats = mon.stats
         em.add_field(name='Statistics', value='\n'.join(f"**{stat.replace('_', '. ').title()}**: {val}"
@@ -560,10 +559,10 @@ class PokemonGame(Menus):
         if isinstance(pokemon, int):
             query_type = 'num'
             if 0 >= pokemon or pokemon > total_pokemon:
-                return await ctx.send(f'Pokemon {member} does not exist.')
+                return await ctx.send(f'Pokemon {pokemon} does not exist.')
 
-            image = self.image_path.format('shiny', pokemon, 0)
             info = await Pokemon.from_num(ctx, pokemon)
+            image = self.image_path.format('shiny', pokemon, 0)
         elif isinstance(pokemon, str):
             query_type = 'fuzzy'
             pokemon_names = [p.base_name for p in await get_all_pokemon(ctx)]

@@ -2,21 +2,20 @@ import math
 import typing
 
 from fuzzywuzzy import process
-import asyncpg
 import discord
 
 from utils.menus import STAR, GLOWING_STAR, ARROWS
-from utils.errors import *
+from utils.errors import PokemonNotFound
 
 
 def xp_to_level(level: int):
     """Returns the amount of EXP needed for a level.
-    
+
     Parameters
     ----------
     level: int
         The level to find the amount of EXP needed for.
-        
+
     Returns
     -------
     int:
@@ -27,12 +26,12 @@ def xp_to_level(level: int):
 
 def level_from_xp(exp: int):
     """Returns the level for the specified amount of EXP.
-    
+
     Parameters
     ----------
     exp: int
         The amount of EXP to find the level foor.
-        
+
     Returns
     -------
     int:
@@ -46,12 +45,12 @@ def level_from_xp(exp: int):
 
 async def get_all_pokemon(ctx):
     """Retrieve all stored :class:`Pokemon`.
-    
+
     Parameters
     ----------
     ctx: discord.commands.Context
         The ctx used for connecting with the DB.
-        
+
     Returns
     -------
     List[:class:`Pokemon`]:
@@ -65,7 +64,7 @@ async def get_all_pokemon(ctx):
 
 class Record:
     """Represents a record from the DB in the form of an object.
-    
+
     Parameters
     ----------
     ctx: discord.commands.Context
@@ -80,7 +79,7 @@ class Record:
 
 class Trainer(Record):
     """Represents a row from the `trainers` table.
-    
+
     Attributes
     ----------
     user_id: int
@@ -93,7 +92,7 @@ class Trainer(Record):
     @classmethod
     async def from_user_id(cls, ctx, user_id: int):
         """Constructs a :class:`Trainer` from a user ID.
-        
+
         Parameters
         ----------
         ctx: discord.commands.Context
@@ -120,7 +119,7 @@ class Trainer(Record):
 
     async def set_inventory(self, inventory: dict):
         """Sets the inventory of the :class:`Trainer`.
-        
+
         Parameters
         ----------
         inventory: json
@@ -129,19 +128,19 @@ class Trainer(Record):
         await self.ctx.con.execute("""
             UPDATE trainers SET inventory = $1 WHERE user_id = $2
             """, inventory, self.user_id)
-        
+
         self.inventory = inventory
 
     async def get_pokemon(self, party=False, seen=False):
         """Retrieve all Pokemon of the :class:`Trainer`.
-        
+
         Parameters
         ----------
         Optional[party: bool]
             Whether or not to retrieve only Pokemon in the :class:`Trainer`'s party.
         Optional[seen: bool]
             Whether or not to retrieve only Pokemon that the :class:`Trainer` has seen.
-            
+
         Returns
         -------
         List[:class:`FoundPokemon`]:
@@ -165,7 +164,7 @@ class Trainer(Record):
 
     async def see(self, pokemon: typing.Union['Pokemon', typing.List['Pokemon']]):
         """Mark a Pokemon or a list of Pokemon as seen.
-        
+
         Parameters
         ----------
         pokemon: Union[:class:`Pokemon`, List[:class:`Pokemon]]
@@ -185,14 +184,14 @@ class Trainer(Record):
 
     async def add_caught_pokemon(self, pokemon: 'Pokemon', ball):
         """Add a :class:`Pokemon` to the :class:`Trainer`'s pokemon.
-        
+
         Parameters
         ----------
         pokemon: :class:`Pokemon`
             The :class:`Pokemon` to add to the :class:`Trainer`.
         ball: str
             The Pokeball that was used to catch the :class:`Pokemon`.
-            
+
         Returns
         -------
         :class:`FoundPokemon`:
@@ -224,7 +223,7 @@ class Trainer(Record):
 
 class Pokemon(Record):
     """Represents a row from the `pokemon` table.
-    
+
     Attributes
     ----------
     num: int
@@ -279,7 +278,7 @@ class Pokemon(Record):
     @classmethod
     async def from_num(cls, ctx, num: int, form_id=0):
         """Constructs a :class:`Pokemon` from a num.
-        
+
         Parameters
         ----------
         ctx: discord.commands.Context
@@ -288,7 +287,7 @@ class Pokemon(Record):
             The num to use when constructing.
         Optional[form_id: int]
             The form_id to also match when constructing.
-            
+
         Returns
         -------
         :class:`Pokemon`:
@@ -398,8 +397,7 @@ class Pokemon(Record):
             original_trainer = trainer
         else:
             original_trainer = await Trainer.from_user_id(self.ctx, self.original_owner)
-        return (((original_trainer.user_id % 65536) ^ original_trainer.secret_id)
-                ^ (upper ^ lower)) <= int((65536 / 400))
+        return (((original_trainer.user_id % 65536) ^ original_trainer.secret_id) ^ (upper ^ lower)) <= int((65536 / 400))
 
     def get_star(self):
         return GLOWING_STAR if self.mythical else STAR if self.legendary else ''
@@ -409,7 +407,7 @@ class Pokemon(Record):
 
     async def get_evolution_chain(self):
         """Returns a nicely formatted string of the :class:`Pokemon`'s evolution chain.
-        
+
         Returns
         -------
         str:
@@ -464,7 +462,7 @@ class Pokemon(Record):
 
 class FoundPokemon(Pokemon):
     """Represents a record from the `found` table.
-    
+
     Attributes
     ----------
     id: int
@@ -607,15 +605,15 @@ class FoundPokemon(Pokemon):
 
     async def add_experience(self, amount: int):
         """Adds experience to the :class:`FoundPokemon`.
-        
+
         This will also check if the :class:`FoundPokemon` levels up
         and evolves, then proceeds to evolve the :class:`FoundPokemon`.
-        
+
         Parameters
         ----------
         amount: int
             The amount of experience to add to the :class:`FoundPokemon`.
-            
+
         Returns
         -------
         :class:`FoundPokemon`:
@@ -692,12 +690,12 @@ class FoundPokemon(Pokemon):
 
     async def evolve(self, evolve_to: 'Pokemon'):
         """Evolves the :class:`FoundPokemon` to the specified :class:`Pokemon`.
-        
+
         Parameters
         ----------
         evolve_to: :class:`Pokemon`
             The :class:`Pokemon` to evolve the :class:`FoundPokemon` to.
-            
+
         Returns
         -------
         :class:`FoundPokemon`:
@@ -761,9 +759,9 @@ class FoundPokemon(Pokemon):
 
     async def yield_stats(self, yield_from: 'FoundPokemon', participants=1, wild=False):
         """Yields statistics to the :class:`FoundPokemon` from another :class:`FoundPokemon`.
-        
+
         This is used for battles.
-        
+
         Parameters
         ----------
         yield_from: :class:`FoundPokemon`
@@ -772,7 +770,7 @@ class FoundPokemon(Pokemon):
             The amount of participants in the battle.
         Optional[wild: bool]:
             Whether or not the battle was wild.
-            
+
         Returns
         -------
         Union[int, None]:
@@ -800,7 +798,7 @@ class FoundPokemon(Pokemon):
 
     async def set_name(self, name: str):
         """Sets the name of the :class:`FoundPokemon`.
-        
+
         Parameters
         ----------
         name: str
@@ -824,7 +822,7 @@ class FoundPokemon(Pokemon):
 
     async def set_party_position(self, position: typing.Union[int, None]):
         """Sets the party position of the :class:`FoundPokemon`.
-        
+
         Parameters
         ----------
         position: Union[int, None]
