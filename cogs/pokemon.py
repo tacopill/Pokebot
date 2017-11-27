@@ -85,9 +85,8 @@ class PokemonGame(Menus):
                               (f'\nUse a {balls[0]} to catch it!' if balls else ''))
         embed.color = mon.color
         embed.set_author(icon_url=ctx.author.avatar_url, name=player_name)
-        embed.set_image(url='attachment://pokemon.gif')
-        msg = await ctx.send(embed=embed, file=discord.File(self.image_path.format('normal', mon.num, 0),
-                                                            filename='pokemon.gif'))
+        embed.set_image(url=self.image_path.format('shiny' if mon.shiny else 'normal', mon['num'], 0))
+        msg = await ctx.send(embed=embed)
         await trainer.see(mon)
         catch_attempts = 0
         while catch_attempts <= 2:
@@ -121,7 +120,7 @@ class PokemonGame(Menus):
                                              reaction.emoji)
                     await msg.edit(embed=embed, delete_after=60)
                     found = await trainer.add_caught_pokemon(mon, reaction.emoji.name)
-                    await ctx.log_event('pokemon_caught', attempts=catch_attempts+1, ball=reaction.emoji.name,
+                    await ctx.log_event('pokemon_caught', attempts=catch_attempts + 1, ball=reaction.emoji.name,
                                         id=found.id)
                     break
                 else:
@@ -132,11 +131,11 @@ class PokemonGame(Menus):
             else:
                 embed.description = wrap(f'You ran away from **{mon.display_name}**{mon.star}{shiny}!', ':chicken:')
                 await msg.edit(embed=embed, delete_after=60)
-                await ctx.log_event('pokemon_fled', attempts=catch_attempts+1, num=mon.num, shiny=mon.shiny)
+                await ctx.log_event('pokemon_fled', attempts=catch_attempts + 1, num=mon.num, shiny=mon.shiny)
                 break
         else:
             embed.description = f'**{mon.display_name}**{mon.star}{shiny} has escaped!'
-            await ctx.log_event('pokemon_fled', attempts=catch_attempts+1, num=mon.num, shiny=mon.shiny)
+            await ctx.log_event('pokemon_fled', attempts=catch_attempts + 1, num=mon.num, shiny=mon.shiny)
             await msg.edit(embed=embed, delete_after=60)
 
 ###################
@@ -202,7 +201,7 @@ class PokemonGame(Menus):
         em.color = mon.color
         name = mon.display_name
         level = mon.level
-        needed_xp = xp_to_level(level+1) - xp_to_level(level)
+        needed_xp = xp_to_level(level + 1) - xp_to_level(level)
         current_xp = mon.exp - xp_to_level(level)
         bar_length = 10
         FILLED_BAR = '■'
@@ -224,7 +223,7 @@ class PokemonGame(Menus):
             em.description += f"**Party Position**: {mon.party_position + 1}"
 
         shiny_status = 'shiny' if mon.shiny else 'normal'
-        image = self.image_path.format(shiny_status, mon.num, 0) # replace 0 with mon['form_id'] to support forms
+        image = self.image_path.format(shiny_status, mon.num, 0)  # replace 0 with mon['form_id'] to support forms
 
         stats = mon.stats
         em.add_field(name='Statistics', value='\n'.join(f"**{stat.replace('_', '. ').title()}**: {val}"
@@ -248,7 +247,7 @@ class PokemonGame(Menus):
 
             def query_repl(match):
                 if match.group(1) not in valid_stats or not match.group(3).isdigit() or \
-                                match.group(2) not in ['>', '<', '=']:
+                        match.group(2) not in ['>', '<', '=']:
                     return ''
                 return f'{match.group(1)} {match.group(2)} {match.group(3)}'
 
@@ -323,13 +322,13 @@ class PokemonGame(Menus):
                 await msg.add_reaction('\N{CROSS MARK}')
                 cur_index = [p.id for p in party].index(chosen_mon.id)
                 try:
-                    if party[cur_index+1]:
+                    if party[cur_index + 1]:
                         await msg.add_reaction(ARROWS[2])
                         up_rxn = True
                 except IndexError:
                     pass
                 try:
-                    if party[cur_index-1] and cur_index != 0:
+                    if party[cur_index - 1] and cur_index != 0:
                         await msg.add_reaction(ARROWS[3])
                         down_rxn = True
                 except IndexError:
@@ -386,8 +385,8 @@ class PokemonGame(Menus):
                 else:
                     await ctx.con.execute("""
                         UPDATE found SET party_position=$1 WHERE party_position=$2 AND owner=$3
-                        """, pos, pos+1, ctx.author.id)
-                    await chosen_mon.set_party_position(pos+1)
+                        """, pos, pos + 1, ctx.author.id)
+                    await chosen_mon.set_party_position(pos + 1)
             elif str(rxn) == ARROWS[3]:
                 pos = chosen_mon.party_position
                 if not down_rxn:
@@ -395,7 +394,7 @@ class PokemonGame(Menus):
                 else:
                     await ctx.con.execute("""
                         UPDATE found SET party_position=$1 WHERE party_position=$2 AND owner=$3
-                        """, pos, pos-1, ctx.author.id)
+                        """, pos, pos - 1, ctx.author.id)
                     await chosen_mon.set_party_position(pos - 1)
             elif evo_dict and rxn.emoji in [evo_dict[e][1] for e in evo_dict]:
                 name = process.extractOne(rxn.emoji.name, evo_dict.keys())[0]
