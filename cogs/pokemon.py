@@ -9,7 +9,7 @@ from discord.ext import commands
 from fuzzywuzzy import process
 
 from utils import errors
-from utils.orm import Pokemon, Trainer, FoundPokemon, xp_to_level, get_all_pokemon
+from utils.orm import Pokemon, Trainer, FoundPokemon, xp_to_level, level_to_xp, get_all_pokemon
 from utils.menus import Menus, STAR, GLOWING_STAR, SPARKLES, SPACER, ARROWS, DONE, CANCEL
 from utils.utils import wrap
 
@@ -422,7 +422,7 @@ class PokemonGame(Menus):
 
 ###################
 #                 #
-# Party           #
+# PARTY           #
 #                 #
 ###################
 
