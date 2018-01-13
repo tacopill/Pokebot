@@ -56,9 +56,8 @@ async def poke_converter(ctx, user_or_num):
 class PokemonGame(Menus):
     def __init__(self, bot):
         self.bot = bot
-        self.image_path = 'data/pokemon/images/{}/{}-{}.gif'
+        self.image_path = 'http://pokebot.xyz/botdata/data/images/pokemon/{}/{}-{}.gif'
         self.max_party_size = 4
-
 
 ###################
 #                 #
@@ -70,7 +69,7 @@ class PokemonGame(Menus):
     @commands.cooldown(1, 150, commands.BucketType.user)
     @pokechannel()
     async def pokemon(self, ctx):
-        """Gives you a random Pokemon!"""
+        """Starts a battle with a random Pokemon!"""
         player_name = ctx.author.name
         player_id = ctx.author.id
         trainer = await Trainer.from_user_id(ctx, player_id)
@@ -280,7 +279,7 @@ class PokemonGame(Menus):
 
         if len(mon_list) == 1:
             embed, im = await self.get_pc_info_embed(mon_list[0])
-            embed.set_image(url='attachment://pokemon.gif')
+            embed.set_image(url=im)
             chosen_mon = mon_list[0]
         else:
             mon_names = []
@@ -295,15 +294,15 @@ class PokemonGame(Menus):
                 return
 
             embed, im = await self.get_pc_info_embed(selected[0])
-            embed.set_image(url='attachment://pokemon.gif')
+            embed.set_image(url=im)
             chosen_mon = selected[0]
 
-        msg = await ctx.send(embed=embed, file=discord.File(im, filename='pokemon.gif'), delete_after=120)
+        msg = await ctx.send(embed=embed, delete_after=120)
         while True:
             chosen_mon = await FoundPokemon.from_id(ctx, chosen_mon.id)
             party = await trainer.get_pokemon(party=True)
             em, im = await self.get_pc_info_embed(chosen_mon)
-            em.set_image(url='attachment://pokemon.gif')
+            em.set_image(url=im)
             await msg.edit(embed=em, delete_after=120)
             await msg.add_reaction('\N{PENCIL}')
             up_rxn = None
@@ -346,8 +345,8 @@ class PokemonGame(Menus):
             if str(rxn) == '\N{PENCIL}':
                 em = discord.Embed()
                 em.color = embed.color
-                em.description = 'Enter a nickname for your Pokemon'
-                em.set_image(url='attachment://pokemon.gif')
+                em.description = 'Enter a nickname for your Pokemon.'
+                em.set_image(url=im)
                 await msg.edit(embed=em, delete_after=120)
 
                 try:
@@ -478,8 +477,6 @@ class PokemonGame(Menus):
                               f"\n**ID:** {mon.num}\n**Type:** {' & '.join(mon.type)}"
                               f"\n**Evolutions:**\n{evo}")
         embed.color = mon.color
-        embed.set_image(url='attachment://pokemon.gif')
-
         return embed
 
     @commands.group(invoke_without_command=True)
@@ -544,8 +541,9 @@ class PokemonGame(Menus):
             image = self.image_path.format('normal', 1, 0)
             info = await Pokemon.from_num(ctx, 1)
         embed = await self.get_pokedex_embed(info)
+        embed.set_image(url=image)
         await ctx.log_event('pokedex_accessed', query_type=query_type, query=member, shiny=False)
-        await ctx.send(embed=embed, file=discord.File(image, filename='pokemon.gif'), delete_after=120)
+        await ctx.send(embed=embed, delete_after=120)
 
     @pokedex.command(name='shiny')
     @pokechannel()
@@ -577,8 +575,9 @@ class PokemonGame(Menus):
             image = self.image_path.format('shiny', 1, 0)
             info = await Pokemon.from_num(ctx, 1)
         embed = await self.get_pokedex_embed(info)
+        embed.set_image(url=image)
         await ctx.log_event('pokedex_accessed', query_type=query_type, query=pokemon, shiny=False)
-        await ctx.send(embed=embed, file=discord.File(image, filename='pokemon.gif'), delete_after=120)
+        await ctx.send(embed=embed, delete_after=120)
 
 ###################
 #                 #
