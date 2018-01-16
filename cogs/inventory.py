@@ -6,7 +6,7 @@ import discord
 
 from cogs.pokemon import pokechannel
 from utils.menus import Menus, STAR, GLOWING_STAR, SPACER
-from utils.utils import wrap, unique
+from utils.utils import wrap, unique, emoji_trans
 from utils.orm import *
 
 async def get_rewards(ctx):
@@ -52,7 +52,7 @@ class Inventory(Menus):
         items = [dict(item) for item in [*balls, *daily_items]]
         options = []
         for item in items:
-            item['emoji'] = self.bot.get_emoji_named(item['name'])
+            item['emoji'] = self.bot.get_emoji_named(item['name'].translate(emoji_trans))
             options.append('{} {}\ua750 **|** Inventory: {}'.format(item['emoji'], item['price'],
                                                                     inventory.get(item['name'], 0)))
 
@@ -168,7 +168,7 @@ class Inventory(Menus):
         items = []
         for item in all_items[1:]:
             if inv.get(item['name']) or item['name'].endswith('ball'):
-                key = self.bot.get_emoji_named(item['name']) or item['name']
+                key = self.bot.get_emoji_named(item['name'].translate(emoji_trans)) or item['name']
                 items.append(f"{key} | {inv.get(item['name'])}")
         em.set_thumbnail(url=thumbnail)
         em.add_field(name='Inventory', value='\n'.join(items))
