@@ -1,5 +1,6 @@
-import math
+from collections import Counter
 import typing
+import math
 
 from fuzzywuzzy import process
 import discord
@@ -114,6 +115,7 @@ class Trainer(Record):
             c.user = ctx.guild.get_member(user_id)
         else:
             c.user = discord.utils.get(list(ctx.bot.get_all_members()), id=user_id)
+        c.inventory = Counter(c.inventory)
 
         return c
 
@@ -125,6 +127,7 @@ class Trainer(Record):
         inventory: json
             The inventory to replace the current :class:`Trainer`'s inventory.
         """
+        inventory = +Counter(inventory)
         await self.ctx.con.execute("""
             UPDATE trainers SET inventory = $1 WHERE user_id = $2
             """, inventory, self.user_id)

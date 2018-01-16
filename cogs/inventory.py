@@ -1,3 +1,6 @@
+import datetime
+import random
+
 from discord.ext import commands
 import discord
 
@@ -34,26 +37,36 @@ class Inventory(Menus):
         thumbnail = 'http://pokebot.xyz/static/img/shop.png'
         title = f'{player_name} | {inventory["money"]}\ua750'
         description = 'Select items to buy{}.'.format(f' in multiples of {multiple}' if multiple > 1 else '')
-        balls = await ctx.con.fetch("""
-            SELECT name, price FROM items WHERE price != 0 AND name LIKE '%ball' ORDER BY price
+        all_items = await ctx.con.fetch("""
+            SELECT name, price FROM items WHERE price != 0 ORDER BY price
             """)
-        balls = [dict(ball) for ball in balls]
-        for ball in balls:
-            ball['emoji'] = self.bot.get_emoji_named(ball['name'])
-        options = ['{} {}\ua750 **|** Inventory: {}'.format(ball['emoji'], ball['price'],
-                                                            inventory.get(ball['name'], 0)) for ball in balls]
+        rand = random.Random(datetime.date.today().toordinal())
+        balls = []
+        not_balls = []
+        for item in all_items:
+            if item['name'].endswith('ball'):
+                balls.append(item)
+            else:
+                not_balls.append(item)
+        daily_items = rand.sample(not_balls, 3)
+        items = [dict(item) for item in [*balls, *daily_items]]
+        options = []
+        for item in items:
+            item['emoji'] = self.bot.get_emoji_named(item['name'])
+            options.append('{} {}\ua750 **|** Inventory: {}'.format(item['emoji'], item['price'],
+                                                                    inventory.get(item['name'], 0)))
 
         selected = await self.embed_menu(options, 'Shop', ctx.author, ctx.channel, -1,
                                          description=description, title=title, thumbnail=thumbnail,
-                                         return_from=list(range(len(balls))), multi=True,
-                                         display=[ball['emoji'] for ball in balls])
+                                         return_from=list(range(len(items))), multi=True,
+                                         display=[item['emoji'] for item in items])
         if not selected:
             return
         bought = []
         total = 0
         for item in set(selected):
             count = selected.count(item) * multiple
-            item_info = balls[item]
+            item_info = items[item]
             item_price, item_name = item_info['price'], item_info['name']
             price = item_price * count
             after = inventory['money'] - price
@@ -68,14 +81,14 @@ class Inventory(Menus):
         else:
             display = []
             for item in set(bought):
-                display.append(str(balls[item]['emoji']))
+                display.append(str(items[item]['emoji']))
                 count = bought.count(item)
                 if count > 1:
                     display[-1] += f' x{count}'
             await ctx.send(f'{player_name} bought the following for {total}\ua750:\n' + '\n'.join(display),
                            delete_after=60)
-            items = {item: bought.count(item) for item in bought}
-            await ctx.log_event('shop_purchased', items=items, spent=total)
+            bought_items = {item: bought.count(item) for item in bought}
+            await ctx.log_event('shop_purchased', items=bought_items, spent=total)
             await player_data.set_inventory(inventory)
 
 ###################
