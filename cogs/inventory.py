@@ -114,13 +114,13 @@ class Inventory(Menus):
         for mon in user_pokemon:
             shiny = GLOWING_STAR if mon.shiny else ''
             options.append("{} **{}.** {}{}{}".format('\📍' if mon.party_position is not None else '',
-                mon.num, mon.display_name, mon.star, shiny))
+                           mon.num, mon.display_name, mon.star, shiny))
             names.append(mon.display_name)
         if not options:
             await ctx.send("You don't have any pokemon to sell.", delete_after=60)
             return
-        selected = await self.reaction_menu(options, ctx.author, ctx.channel, -1, per_page=20, header=header,
-                                            code=False, multi=True, return_from=user_pokemon, display=names)
+        selected = await self.menu(options, ctx.author, ctx.channel, -1, per_page=20, header=header,
+                                   code=False, multi=True, return_from=user_pokemon, display=names)
         if not selected:
             return
         named = []

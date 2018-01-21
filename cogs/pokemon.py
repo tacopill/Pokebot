@@ -191,7 +191,7 @@ class PokemonGame(Menus):
             name = mon.display_name
             options.append("{} **{}.** {}{}{}{}".format('' if mon.party_position is not None else '',
                                                         mon.num, name, mon.star, shiny, count))
-        await self.reaction_menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
+        await self.menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
 
     async def get_pc_info_embed(self, mon):
         pokedex = self.bot.get_emoji_named('Pokedex')
@@ -288,8 +288,8 @@ class PokemonGame(Menus):
                                                           mon.num, mon.display_name, mon.star))
 
             header = f"__**{ctx.author.name}'s PC**__"
-            selected = await self.reaction_menu(mon_names, ctx.author, ctx.channel, 1, per_page=10, code=False,
-                                                header=header, return_from=mon_list)
+            selected = await self.menu(mon_names, ctx.author, ctx.channel, 1, per_page=10, code=False,
+                                       header=header, return_from=mon_list)
             if not selected:
                 return
 
@@ -518,7 +518,7 @@ class PokemonGame(Menus):
             for mon in seen:
                 options.append("**{}.** {}{}".format(
                     mon.num, mon.display_name, mon.star))
-            await self.reaction_menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
+            await self.menu(options, ctx.author, ctx.channel, 0, per_page=20, code=False, header=header)
             return
         elif isinstance(member, int):
             query_type = 'num'
@@ -615,13 +615,13 @@ class PokemonGame(Menus):
             b_options.append("**{}.** {}{}{}".format(mon.num, mon.display_name, mon.star, shiny))
 
         header = '**{.name}**,\nSelect the pokemon you wish to trade with **{.name}**'
-        selected = await asyncio.gather(self.reaction_menu(a_options, author, channel, -1, code=False,
-                                                           header=header.format(author, user), return_from=a_found,
-                                                           allow_none=True, multi=True, display=a_names),
+        selected = await asyncio.gather(self.menu(a_options, author, channel, -1, code=False,
+                                                  header=header.format(author, user), return_from=a_found,
+                                                  allow_none=True, multi=True, display=a_names),
 
-                                        self.reaction_menu(b_options, user, channel, -1, code=False,
-                                                           header=header.format(user, author), return_from=b_found,
-                                                           allow_none=True, multi=True, display=b_names))
+                                        self.menu(b_options, user, channel, -1, code=False,
+                                                  header=header.format(user, author), return_from=b_found,
+                                                  allow_none=True, multi=True, display=b_names))
         if all(s is None for s in selected):
             await ctx.send('No one responded to the trade.', delete_after=60)
             return

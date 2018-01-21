@@ -1,3 +1,4 @@
+from enum import Enum, auto
 import asyncio
 
 from discord.ext import commands
@@ -26,6 +27,40 @@ GLOWING_STAR = '\\\N{GLOWING STAR}'
 SPARKLES = '\\\N{SPARKLES}'
 
 
+class MenuControl(Enum):
+    previous = auto()
+    p = previous
+    prev = previous
+    last = previous
+
+    next = auto()
+    n = next
+
+    done = auto()
+    d = done
+    finish = done
+    f = done
+
+    cancel = auto()
+    c = cancel
+
+    undo = auto()
+    u = undo
+
+
+MENU_CONTROLS = (MenuControl.previous, MenuControl.next, MenuControl.cancel, MenuControl.undo, MenuControl.done)
+
+
+def get_response(content):
+    if content.isdigit():
+        num = int(content)
+        return num
+    try:
+        return MenuControl[content]
+    except KeyError:
+        return None
+
+
 ###################
 #                 #
 #    MENUS        #
@@ -51,13 +86,12 @@ class Menus:
 
 ###################
 #                 #
-#    REACTION     #
 #    MENU         #
 #                 #
 ###################
 
-    async def reaction_menu(self, options, user, destination, count=1, *, timeout=60, multi=False, display=None,
-                            code=True, per_page=10, header='', return_from=None, allow_none=False, return_id=False):
+    async def menu(self, options, user, destination, count=1, *, timeout=60, multi=False, display=None,
+                   code=True, per_page=10, header='', return_from=None, allow_none=False, return_id=False):
         if return_from is None:
             return_from = options
         elif len(return_from) != len(options):
@@ -67,12 +101,11 @@ class Menus:
         elif len(display) != len(options):
             raise ValueError('display length must match that of options')
         if count:
-            reactions = (*DIGITS, *ARROWS, CANCEL, UNDO, DONE)
+            accept = (*MENU_CONTROLS, *range(1, per_page + 1))
             if count > len(options) and not multi:
                 count = len(options)
-            per_page = 10
         else:
-            reactions = (*ARROWS, CANCEL, UNDO, DONE)
+            accept = MENU_CONTROLS
         pag = commands.Paginator(prefix='```' if code else '', suffix='```' if code else '')
         page_len = 0
         for ind, line in enumerate(options):
@@ -95,46 +128,44 @@ class Menus:
         choices = []
         msg = await destination.send(header + pages[page])
 
-        def check(reaction, reaction_user):
-            return (reaction.emoji in reactions and
-                    reaction.message.id == msg.id and
-                    reaction_user == user)
+        def check(message):
+            response = get_response(message.content)
+            return (message.author == user and
+                    message.channel == msg.channel and
+                    response in accept)
 
         while True:
-            if page:
-                await msg.add_reaction(ARROWS[0])
-            if count:
-                for r in DIGITS[:pages[page].count('\n') - 1]:
-                    await msg.add_reaction(r)
-            if page != len(pages) - 1:
-                await msg.add_reaction(ARROWS[1])
-            if choices:
-                await msg.add_reaction(UNDO)
-            if choices or allow_none:
-                await msg.add_reaction(DONE)
-            await msg.add_reaction(CANCEL)
             try:
-                reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=timeout)
+                message = await self.bot.wait_for('message', check=check, timeout=timeout)
+                response = get_response(message.content)
             except asyncio.TimeoutError:
-                reaction = None
-            if reaction is None or reaction.emoji == CANCEL:
+                message, response = None, None
+            if message is None or response is MenuControl.cancel:
+                if response is MenuControl.cancel:
+                    await message.delete()
                 await msg.delete()
                 return user.id if return_id else None
-            elif reaction.emoji in DIGITS:
-                choice = page * 10 + DIGITS.index(reaction.emoji)
+            elif response in accept[5:]:
+                if response >= pages[page].count('\n'):
+                    continue
+                await message.delete()
+                choice = page * 10 + response - 1
                 if choice not in choices or multi:
                     choices.append(choice)
                     if len(choices) == count:
                         break
-            elif reaction.emoji == ARROWS[0]:
+            elif response is MenuControl.previous:
+                await message.delete()
                 page -= 1
-            elif reaction.emoji == ARROWS[1]:
+            elif response is MenuControl.next:
+                await message.delete()
                 page += 1
-            elif reaction.emoji == UNDO:
+            elif response is MenuControl.undo:
+                await message.delete()
                 choices.pop()
-            elif reaction.emoji == DONE:
+            elif response is MenuControl.done:
+                await message.delete()
                 break
-            await msg.clear_reactions()
             head = header + pages[page]
             if choices:
                 head += '\n' + 'Selected: ' + ', '.join(map(str, [display[ind] for ind in choices]))
@@ -149,8 +180,10 @@ class Menus:
 #                 #
 ###################
 
-    async def embed_menu(self, options, field, user, destination, count=1, *, timeout=60, multi=False, code=True, per_page=10, return_from=None, allow_none=False, return_id=False, display=None,
-                         file=None, thumbnail=None, image=None, footer=None, **kwargs):
+    async def embed_menu(self, options, field, user, destination, count=1, *, timeout=60, multi=False, code=True, per_page=10, return_from=None,
+                         allow_none=False, return_id=False, display=None, file=None, thumbnail=None, image=None, footer=None, **kwargs):
+        if per_page > 20:
+            per_page = 20
         if return_from is None:
             return_from = options
         elif len(return_from) != len(options):
@@ -160,12 +193,12 @@ class Menus:
         elif len(display) != len(options):
             raise ValueError('display length must match that of options')
         if count:
-            reactions = (*DIGITS, *ARROWS, CANCEL, UNDO, DONE)
+            accept = (*MENU_CONTROLS, *range(1, per_page + 1))
             if count > len(options) and not multi:
                 count = len(options)
             per_page = 10
         else:
-            reactions = (*ARROWS, CANCEL, UNDO, DONE)
+            accept = MENU_CONTROLS
         em = discord.Embed(**kwargs)
         if thumbnail:
             em.set_thumbnail(url=thumbnail)
@@ -190,142 +223,49 @@ class Menus:
         choices = []
         msg = await destination.send(embed=em, file=file)
 
-        def check(reaction, reaction_user):
-            return (reaction.emoji in reactions and
-                    reaction.message.id == msg.id and
-                    reaction_user == user)
+        def check(message):
+            response = get_response(message.content)
+            return (message.author == user and
+                    message.channel == msg.channel and
+                    response in accept)
 
         while True:
-            if page:
-                await msg.add_reaction(ARROWS[0])
-            if count:
-                for r in DIGITS[:pages[page].count('\n')]:
-                    await msg.add_reaction(r)
-            if page != len(pages) - 1:
-                await msg.add_reaction(ARROWS[1])
-            if choices:
-                await msg.add_reaction(UNDO)
-            if choices or allow_none:
-                await msg.add_reaction(DONE)
-            await msg.add_reaction(CANCEL)
             try:
-                reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=timeout)
+                message = await self.bot.wait_for('message', check=check, timeout=timeout)
+                response = get_response(message.content)
             except asyncio.TimeoutError:
-                reaction = None
-            if reaction is None or reaction.emoji == CANCEL:
+                message, response = None, None
+            if message is None or response is MenuControl.cancel:
+                if response is MenuControl.cancel:
+                    await message.delete()
                 await msg.delete()
                 return user.id if return_id else None
-            elif reaction.emoji in DIGITS:
-                choice = page * 10 + DIGITS.index(reaction.emoji)
+            elif response in accept[5:]:
+                if response > pages[page].count('\n'):
+                    continue
+                await message.delete()
+                choice = page * 10 + response - 1
                 if choice not in choices or multi:
                     choices.append(choice)
                     if len(choices) == count:
                         break
-            elif reaction.emoji == ARROWS[0]:
+            elif response is MenuControl.previous:
+                await message.delete()
                 page -= 1
-            elif reaction.emoji == ARROWS[1]:
+            elif response is MenuControl.next:
+                await message.delete()
                 page += 1
-            elif reaction.emoji == UNDO:
+            elif response is MenuControl.undo:
+                await message.delete()
                 choices.pop()
-            elif reaction.emoji == DONE:
+            elif response is MenuControl.done:
+                await message.delete()
                 break
-            await msg.clear_reactions()
             if choices:
                 em.description = kwargs.get('description', '') + '\n' + 'Selected: ' + ', '.join(map(str, [display[ind] for ind in choices]))
             else:
                 em.description = kwargs.get('description')
             em._fields[0]['value'] = pages[page]
             await msg.edit(embed=em)
-        await msg.delete()
-        return [return_from[ind] for ind in choices]
-
-###################
-#                 #
-#    EMBED        #
-#    REACTION     #
-#    MENU         #
-#                 #
-###################
-
-    async def embed_reaction_menu(self, options, user, destination, count=1, *, timeout=60, multi=False, return_from=None, allow_none=False,
-                                  file=None, thumbnail=None, image=None, footer=None, **kwargs):
-        if return_from is None:
-            return_from = options
-        elif len(return_from) != len(options):
-            raise ValueError('return_from length must match that of options')
-        if count:
-            reactions = (*DIGITS, *ARROWS, CANCEL, UNDO, DONE)
-            if count > len(options) and not multi:
-                count = len(options)
-        else:
-            reactions = (*ARROWS, CANCEL, UNDO, DONE)
-        pages = []
-        for page in options:
-            for ind, field in enumerate(page):
-                if count:
-                    field['name'] = f'{ind % 10 + 1}. {field["name"]}'
-                try:
-                    field['inline']
-                except KeyError:
-                    field['inline'] = True
-            pages.append(page)
-        embed = discord.Embed(**kwargs)
-        if thumbnail:
-            embed.set_thumbnail(url=thumbnail)
-        if image:
-            embed.set_image(url=image)
-        if footer:
-            embed.set_footer(text=footer)
-        page = 0
-        embed._fields = pages[page]
-        choices = []
-        msg = await destination.send(embed=embed, file=file)
-
-        def check(reaction, reaction_user):
-            return (reaction.emoji in reactions and
-                    reaction.message.id == msg.id and
-                    reaction_user == user)
-
-        while True:
-            if page:
-                await msg.add_reaction(ARROWS[0])
-            if count:
-                for r in DIGITS[:pages[page].count('\n') - 1]:
-                    await msg.add_reaction(r)
-            if page != len(pages) - 1:
-                await msg.add_reaction(ARROWS[1])
-            if choices:
-                await msg.add_reaction(UNDO)
-            if choices or allow_none:
-                await msg.add_reaction(DONE)
-            await msg.add_reaction(CANCEL)
-            try:
-                reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=timeout)
-            except asyncio.TimeoutError:
-                reaction = None
-            if reaction is None or reaction.emoji == CANCEL:
-                await msg.delete()
-                return None
-            elif reaction.emoji in DIGITS:
-                choice = page * 10 + DIGITS.index(reaction.emoji)
-                if choice not in choices or multi:
-                    choices.append(choice)
-                    if len(choices) == count:
-                        break
-            elif reaction.emoji == ARROWS[0]:
-                page -= 1
-            elif reaction.emoji == ARROWS[1]:
-                page += 1
-            elif reaction.emoji == UNDO:
-                choices.pop()
-            elif reaction.emoji == DONE:
-                break
-                await msg.clear_reactions()
-            if choices:
-                embed.description += '\n' + 'Selected: ' + ', '.join(map(str, [options[ind] for ind in choices]))
-            else:
-                embed.description = kwargs.get('description')
-            embed._fields = pages[page]
-            await msg.edit(embed=embed)
         await msg.delete()
         return [return_from[ind] for ind in choices]
