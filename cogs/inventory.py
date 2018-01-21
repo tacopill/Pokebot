@@ -7,7 +7,8 @@ import discord
 from cogs.pokemon import pokechannel
 from utils.menus import Menus, STAR, GLOWING_STAR, SPACER
 from utils.utils import wrap, unique, emoji_trans
-from utils.orm import *
+from utils.orm import Trainer
+
 
 async def get_rewards(ctx):
     return await ctx.con.fetch("""
