@@ -1,4 +1,4 @@
-[![intro](https://i.imgur.com/GWGthkH.png)](http://pokebot.xyz/)
+[![intro](https://i.imgur.com/GRWIs5j.png)](http://pokebot.xyz/)
 
 # Pokébot
 
